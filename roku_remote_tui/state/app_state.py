@@ -4,12 +4,18 @@ from pathlib import Path
 from roku_remote_tui.storage.favorites import FavoritesManager
 from roku_remote_tui.storage.recents import RecentsManager
 from roku_remote_tui.storage.stats import StatsManager
+from roku_remote_tui.storage.devices import DeviceManager
 from roku_remote_tui.utils.fuzzy import fuzzy_score
 from roku_remote_tui.config.themes import ThemeManager
 
 class AppState:
     def __init__(self, roku_cli):
         self.roku = roku_cli
+        
+        # Device management
+        self.device_manager = DeviceManager()
+        self._setup_device()
+        
         self.focus = "remote"
         self.typing_mode = False
         self.type_buf = ""
@@ -34,10 +40,48 @@ class AppState:
         self.launcher_visible = 10
         self.help_open = False
         self.stats_open = False
+        self.devices_open = False  # NEW: device selector overlay
         self.ok_hold_active = False
         self.ok_hold_end = 0.0
         self.last_vol_sent = 0.0
         self.online = None
+    
+    def _setup_device(self):
+        """Setup roku CLI with active device."""
+        active = self.device_manager.get_active()
+        if active:
+            self.roku.set_device(active['ip'])
+            self.set_message(f"Device: {active['name']}")
+        else:
+            self.set_message("No device configured - use Ctrl+D to add")
+    
+    def get_current_device_name(self):
+        """Get name of current device."""
+        active = self.device_manager.get_active()
+        return active['name'] if active else "No Device"
+    
+    def switch_device(self, device_id):
+        """Switch to a different device."""
+        if self.device_manager.set_active(device_id):
+            active = self.device_manager.get_active()
+            self.roku.set_device(active['ip'])
+            self.set_message(f"Switched to: {active['name']}")
+            # Reload apps for new device
+            self.load_apps(first=True)
+            return True
+        return False
+    
+    def open_device_selector(self):
+        """Open device selector overlay."""
+        devices = self.device_manager.get_all()
+        if not devices:
+            self.set_message("No devices found. Discovering...")
+            # Auto-discover will be handled by the overlay
+        self.devices_open = True
+    
+    def close_device_selector(self):
+        """Close device selector overlay."""
+        self.devices_open = False
     
     def cycle_theme(self):
         theme_name = self.theme.next_theme()

@@ -2,11 +2,23 @@
 import subprocess
 
 class RokuCLI:
-    def __init__(self):
+    def __init__(self, device_ip=None):
         self.command_count = 0
+        self.device_ip = device_ip
+    
+    def set_device(self, device_ip):
+        """Change the target device IP."""
+        self.device_ip = device_ip
     
     def run(self, args, capture=False, timeout=10.0):
-        cmd = ["roku"] + args
+        cmd = ["roku"]
+        
+        # Add device IP if set
+        if self.device_ip:
+            cmd.extend(["--ip", self.device_ip])
+        
+        cmd.extend(args)
+        
         try:
             self.command_count += 1
             if capture:
