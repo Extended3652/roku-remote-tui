@@ -41,6 +41,7 @@ class AppState:
         self.help_open = False
         self.stats_open = False
         self.devices_open = False  # NEW: device selector overlay
+        self.devices_sel = 0  # NEW: selected device index
         self.ok_hold_active = False
         self.ok_hold_end = 0.0
         self.last_vol_sent = 0.0
@@ -74,9 +75,12 @@ class AppState:
     def open_device_selector(self):
         """Open device selector overlay."""
         devices = self.device_manager.get_all()
-        if not devices:
-            self.set_message("No devices found. Discovering...")
-            # Auto-discover will be handled by the overlay
+        self.devices_sel = 0
+        # Set selection to current active device
+        for i, d in enumerate(devices):
+            if d['active']:
+                self.devices_sel = i
+                break
         self.devices_open = True
     
     def close_device_selector(self):

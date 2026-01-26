@@ -51,6 +51,7 @@ class Renderer:
         self._draw_launcher_overlay(maxy, maxx)
         self._draw_help_overlay(maxy, maxx)
         self._draw_stats_overlay(maxy, maxx)
+        self._draw_device_overlay(maxy, maxx)
     
     def _draw_quick_keys_panel(self, y, x, h, w):
         border_color = self.state.theme.get_color("border")
@@ -315,3 +316,57 @@ class Renderer:
                 self.stdscr.addnstr(y, x, text, len(text), attr)
         except curses.error:
             pass
+
+    def _draw_device_overlay(self, maxy, maxx):
+        """Draw device selector overlay."""
+        if not self.state.devices_open:
+            return
+        
+        h = 15
+        w = min(60, maxx - 4)
+        y = max(1, (maxy - h) // 2)
+        x = max(2, (maxx - w) // 2)
+        
+        # Clear background
+        for yy in range(y, min(y + h, maxy)):
+            try:
+                self._addstr(yy, x, " " * min(w, maxx - x - 1), 0, 0)
+            except:
+                pass
+        
+        self._draw_box(y, x, h, w, "Device Selector", 6, curses.A_BOLD)
+        
+        # Current device
+        current = self.state.get_current_device_name()
+        self._addstr(y + 1, x + 2, f"Current: {current}", 3, curses.A_BOLD)
+        
+        # List devices
+        devices = self.state.device_manager.get_all()
+        self._addstr(y + 3, x + 2, "Available Devices:", 3, curses.A_BOLD)
+        
+        row_y = y + 4
+        if not devices:
+            self._addstr(row_y, x + 4, "No devices found", 4, 0)
+            self._addstr(row_y + 1, x + 4, "Press 's' to scan", 3, 0)
+        else:
+            for idx, device in enumerate(devices):
+                if row_y >= y + h - 3:
+                    break
+                active = "✓" if device['active'] else " "
+                selected = idx == self.state.devices_sel
+                line = f" [{active}] {device['name']} - {device['ip']}"
+                
+                # Draw the entire line with consistent styling
+                if selected:
+                    # Selected: cyan background
+                    full_line = line + " " * (w - len(line) - 6)
+                    self._addstr(row_y, x + 3, full_line[:w-5], 1, curses.A_REVERSE)
+                else:
+                    # Not selected: green if active, white if not
+                    color = 2 if device['active'] else 5
+                    attr = curses.A_BOLD if device['active'] else 0
+                    self._addstr(row_y, x + 3, line[:w-5], color, attr)
+                row_y += 1
+        
+        # Footer
+        self._addstr(y + h - 2, x + 2, "↑↓: select  Enter: switch  s: scan  D/Esc: close", 3, 0)
