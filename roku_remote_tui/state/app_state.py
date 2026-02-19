@@ -11,9 +11,10 @@ from roku_remote_tui.config.themes import ThemeManager
 class AppState:
     def __init__(self, roku_cli):
         self.roku = roku_cli
-        
+
         # Device management
         self.device_manager = DeviceManager()
+        self.favorites = FavoritesManager()
         self._setup_device()
         
         self.focus = "remote"
@@ -27,7 +28,6 @@ class AppState:
         self.apps_selected = 0
         self.apps_scroll = 0
         self._apps_list_h = 10
-        self.favorites = FavoritesManager()
         self.recents = RecentsManager()
         self.stats = StatsManager()
         self.fav_assign_mode = False
@@ -52,6 +52,7 @@ class AppState:
         active = self.device_manager.get_active()
         if active:
             self.roku.set_device(active['ip'])
+            self.favorites.switch_device(active['id'])
             self.set_message(f"Device: {active['name']}")
         else:
             self.set_message("No device configured - use Ctrl+D to add")
@@ -62,12 +63,12 @@ class AppState:
         return active['name'] if active else "No Device"
     
     def switch_device(self, device_id):
-        """Switch to a different device."""
+        """Switch to a different device, reloading apps and favorites."""
         if self.device_manager.set_active(device_id):
             active = self.device_manager.get_active()
             self.roku.set_device(active['ip'])
+            self.favorites.switch_device(active['id'])
             self.set_message(f"Switched to: {active['name']}")
-            # Reload apps for new device
             self.load_apps(first=True)
             return True
         return False
