@@ -78,7 +78,7 @@ class Renderer:
         self._draw_box(y, x, h, w, "Quick Keys", border_color, curses.A_DIM)
         lines = [
             ("/: launcher", 5), ("Tab: switch focus", 5), ("q: quit", 5), ("?: help", 5),
-            ("Shift+T: theme", 5), ("Shift+S: stats", 5), ("D: devices", 5), ("", 5),
+            ("Shift+T: theme", 5), ("Shift+S: stats", 5), ("d: devices", 5), ("", 5),
             ("Remote:", 3),
             ("Arrows: navigate", 5), ("Enter: OK", 5), ("Backspace: Back", 5),
             ("p: Power", 5), ("h: Home", 5),
@@ -280,7 +280,7 @@ class Renderer:
             ("  r           Refresh apps (Apps focus)", 5, 0),
             ("", 5, 0), ("GENERAL", 6, curses.A_BOLD), ("  ?           Help", 5, 0),
             ("  Shift+S     Statistics", 5, 0), ("  Shift+T     Theme", 5, 0),
-            ("  D           Device selector", 5, 0), ("  q           Quit", 5, 0)
+            ("  d           Device selector", 5, 0), ("  q           Quit", 5, 0)
         ]
         h = min(len(help_lines) + 4, maxy - 4)
         w = min(75, maxx - 4)
@@ -403,8 +403,15 @@ class Renderer:
         
         # List devices
         devices = self.state.device_manager.get_all()
+
+        if self.state.devices_scanning:
+            self._addstr(y + 3, x + 2, "Scanning network...", 3, curses.A_BOLD)
+            self._addstr(y + 4, x + 4, "Please wait", 5, curses.A_DIM)
+            self._addstr(y + h - 2, x + 2, "D/Esc: close", 3, 0)
+            return
+
         self._addstr(y + 3, x + 2, "Available Devices:", 3, curses.A_BOLD)
-        
+
         row_y = y + 4
         if not devices:
             self._addstr(row_y, x + 4, "No devices found", 4, 0)

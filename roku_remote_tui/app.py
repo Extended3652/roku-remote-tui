@@ -16,6 +16,7 @@ class RokuRemoteTUI:
         self.renderer = Renderer(stdscr, self.state)
         self.input_handler = InputHandler(self.state, self.roku)
         self._setup_curses()
+        self.input_handler.set_redraw(self._force_redraw)
         self.state.load_apps(first=True)
     
     def _setup_curses(self):
@@ -32,6 +33,13 @@ class RokuRemoteTUI:
             pass
         self.renderer.init_colors()
     
+    def _force_redraw(self):
+        self.renderer.draw()
+        try:
+            self.stdscr.refresh()
+        except curses.error:
+            pass
+
     def run(self):
         try:
             while self.running:

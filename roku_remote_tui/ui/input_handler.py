@@ -11,6 +11,10 @@ class InputHandler:
         self._wheel_min_gap_remote = 0.15
         self._last_vol_time = 0.0
         self._vol_min_gap = 0.25
+        self._redraw = None  # optional callback for forcing a mid-handler redraw
+
+    def set_redraw(self, fn):
+        self._redraw = fn
     
     def handle(self, ch):
         # DEVICE SELECTOR has priority (can close other overlays)
@@ -56,8 +60,8 @@ class InputHandler:
         
         # GLOBAL KEYS
         
-        # D key: Device selector
-        if ch == ord('D'):
+        # D/d key: Device selector
+        if ch == ord('D') or ch == ord('d'):
             self.state.open_device_selector()
             return None
         
@@ -155,11 +159,15 @@ class InputHandler:
         
         # Scan for devices on 's'
         if ch == ord('s') or ch == ord('S'):
-            self.state.set_message("Scanning for devices...")
+            self.state.devices_scanning = True
+            self.state.set_message("Scanning network for Roku devices...")
+            if self._redraw:
+                self._redraw()
             from roku_remote_tui.roku.discovery import discover_devices
             found = discover_devices()
             for device in found:
                 self.state.device_manager.add_device(device)
+            self.state.devices_scanning = False
             self.state.set_message(f"Found {len(found)} device(s)")
             return None
         

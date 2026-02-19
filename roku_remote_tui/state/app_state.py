@@ -40,8 +40,9 @@ class AppState:
         self.launcher_visible = 10
         self.help_open = False
         self.stats_open = False
-        self.devices_open = False  # NEW: device selector overlay
-        self.devices_sel = 0  # NEW: selected device index
+        self.devices_open = False
+        self.devices_sel = 0
+        self.devices_scanning = False
         self.ok_hold_active = False
         self.ok_hold_end = 0.0
         self.last_vol_sent = 0.0
