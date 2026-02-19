@@ -316,7 +316,7 @@ class AppState:
                     typ = r.get("type") or ""
                     if not arg:
                         arg = name
-                    processed.append({"name": name, "arg": arg, "type": typ, "display": arg})
+                    processed.append({"name": name, "arg": arg, "type": typ, "display": name or arg})
                 inputs = [a for a in processed if a["type"] == "tvin"]
                 apps_only = [a for a in processed if a["type"] != "tvin"]
                 self.apps = inputs + apps_only
