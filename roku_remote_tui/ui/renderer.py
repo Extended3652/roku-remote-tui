@@ -58,10 +58,16 @@ class Renderer:
         self._draw_box(y, x, h, w, "Quick Keys", border_color, curses.A_DIM)
         lines = [
             ("/: launcher", 5, 0), ("Tab: switch focus", 5, 0), ("q: quit", 5, 0), ("?: help", 5, 0),
-            ("Shift+T: theme", 5, 0), ("Shift+S: stats", 5, 0), ("", 5, 0), ("Remote:", 3, curses.A_BOLD),
-            ("Arrows: navigate", 5, 0), ("Enter: OK", 5, 0), ("Backspace: Back", 5, 0), ("h: Home", 5, 0),
-            ("Space: Play/Pause", 5, 0), ("m: Mute", 5, 0), ("- / =: Volume", 5, 0), ("", 5, 0),
-            ("Apps:", 3, curses.A_BOLD), ("↑↓: select", 5, 0), ("Enter: launch", 5, 0), ("r: refresh", 5, 0)
+            ("Shift+T: theme", 5, 0), ("Shift+S: stats", 5, 0), ("D: devices", 5, 0), ("", 5, 0),
+            ("Remote:", 3, curses.A_BOLD),
+            ("Arrows: navigate", 5, 0), ("Enter: OK", 5, 0), ("Backspace: Back", 5, 0),
+            ("p: Power", 5, 0), ("h: Home", 5, 0),
+            ("Space: Play/Pause", 5, 0), ("b/f: Rev/Fwd", 5, 0),
+            ("r: Replay", 5, 0), ("i: Info", 5, 0),
+            ("m: Mute", 5, 0), ("- / =: Volume", 5, 0), ("t: Type text", 5, 0), ("", 5, 0),
+            ("Apps:", 3, curses.A_BOLD), ("↑↓: select", 5, 0), ("Enter: launch", 5, 0),
+            ("r: refresh", 5, 0), ("", 5, 0),
+            ("Favorites:", 3, curses.A_BOLD), ("F: assign slot", 5, 0), ("1-9: launch", 5, 0),
         ]
         qy = y + 2
         qx = x + 3
@@ -79,13 +85,13 @@ class Renderer:
         self._draw_box(y, x, h, w, "Remote", border_color, border_attr | title_attr)
         art = [
             "┌─────────────────────────┐", "│       Roku Remote       │", "├─────────────────────────┤",
-            "│  [h] Home               │", "│                         │", "│         ┌─────┐         │",
+            "│  [p] Power  [h] Home    │", "│                         │", "│         ┌─────┐         │",
             "│         │  ↑  │         │", "│    ┌────┘     └────┐    │", "│    │  ←   O·K   →  │    │",
             "│    └────┐     ┌────┘    │", "│         │  ↓  │         │", "│         └─────┘         │",
             "│                         │", "│   Backspace = Back      │", "│       Enter = OK        │",
             "│                         │", "│  [r] Replay   [i] Info  │", "│  [b] Rev      [f] Fwd   │",
-            "│  [Space] Play/Pause     │", "│                         │", "│  Vol: - down, =/+ up    │",
-            "│  Mute: m                │", "│                         │", "│  Focus: Tab             │",
+            "│  [Space] Play/Pause     │", "│                         │", "│  Vol:-/=  Mute:m        │",
+            "│  t: type   Tab: focus   │", "│                         │", "│  F: fav  1-9: launch    │",
             "└─────────────────────────┘"
         ]
         art_color = 2 if remote_active else 5
@@ -107,14 +113,15 @@ class Renderer:
         border_attr = 0 if apps_active else curses.A_DIM
         title_attr = (curses.A_BOLD | curses.A_REVERSE) if apps_active else 0
         self._draw_box(y, x, h, w, "Apps", border_color, border_attr | title_attr)
+        dim = curses.A_DIM if not apps_active else 0
         inner_y = y + 1
         inner_x = x + 2
         inner_w = w - 4
         if not self.state.apps:
-            self._addstr(inner_y, inner_x, "Loading apps...", 3)
+            self._addstr(inner_y, inner_x, "Loading apps...", 3, dim)
             return
         total = len(self.state.apps)
-        self._addstr(inner_y, inner_x, f"Total: {total} apps/inputs", 3, curses.A_BOLD)
+        self._addstr(inner_y, inner_x, f"Total: {total} apps/inputs", 3, curses.A_BOLD | dim)
         inner_y += 2
         list_height = h - 5
         self.state._apps_list_h = list_height
@@ -139,14 +146,15 @@ class Renderer:
                     break
             if is_selected:
                 text = f"> {name}{suffix}{fav_marker}"
-                self._addstr(row_y, inner_x, text[:inner_w], self.state.theme.get_color("selected"), curses.A_REVERSE | curses.A_BOLD)
+                sel_attr = (curses.A_REVERSE | curses.A_BOLD | dim) if apps_active else (curses.A_BOLD | dim)
+                self._addstr(row_y, inner_x, text[:inner_w], self.state.theme.get_color("selected"), sel_attr)
             else:
                 text = f"  {name}{suffix}{fav_marker}"
                 color = self.state.theme.get_color("favorite") if fav_marker else self.state.theme.get_color("text")
-                self._addstr(row_y, inner_x, text[:inner_w], color)
+                self._addstr(row_y, inner_x, text[:inner_w], color, dim)
             row_y += 1
         footer = "↑↓: select  Enter: launch  r: refresh  Tab: focus"
-        self._addstr(y + h - 1, x + 2, footer[:w-4], 3)
+        self._addstr(y + h - 1, x + 2, footer[:w-4], 3, dim)
     
     def _draw_bottom(self, maxy, maxx):
         if self.state.typing_mode:
@@ -212,14 +220,18 @@ class Renderer:
         help_lines = [
             ("NAVIGATION", 6, curses.A_BOLD), ("  Tab         Switch focus (Remote/Apps)", 5, 0),
             ("  ↑↓←→        Navigate", 5, 0), ("  Enter       OK / Launch", 5, 0), ("  Backspace   Back", 5, 0),
-            ("", 5, 0), ("REMOTE CONTROL", 6, curses.A_BOLD), ("  h           Home", 5, 0),
+            ("", 5, 0), ("REMOTE CONTROL", 6, curses.A_BOLD),
+            ("  p           Power toggle (global)", 5, 0), ("  h           Home (global)", 5, 0),
             ("  Space       Play/Pause", 5, 0), ("  r           Replay", 5, 0), ("  i           Info", 5, 0),
-            ("  b           Rewind", 5, 0), ("  m           Mute", 5, 0), ("  - / =       Volume down/up", 5, 0),
+            ("  b           Rewind", 5, 0), ("  f           Fast Forward", 5, 0),
+            ("  m           Mute", 5, 0), ("  - / =       Volume down/up", 5, 0),
+            ("  t           Typing mode", 5, 0),
             ("", 5, 0), ("FEATURES", 6, curses.A_BOLD), ("  /           Launcher", 3, 0),
-            ("  t           Typing mode", 3, 0), ("  F then 1-9  Set favorite", 3, 0),
-            ("  1-9         Launch favorite", 3, 0), ("  r           Refresh apps", 5, 0),
+            ("  F then 1-9  Set favorite", 3, 0), ("  1-9         Launch favorite", 3, 0),
+            ("  r           Refresh apps (Apps focus)", 5, 0),
             ("", 5, 0), ("GENERAL", 6, curses.A_BOLD), ("  ?           Help", 5, 0),
-            ("  Shift+S     Statistics", 5, 0), ("  Shift+T     Theme", 5, 0), ("  q           Quit", 5, 0)
+            ("  Shift+S     Statistics", 5, 0), ("  Shift+T     Theme", 5, 0),
+            ("  D           Device selector", 5, 0), ("  q           Quit", 5, 0)
         ]
         h = min(len(help_lines) + 4, maxy - 4)
         w = min(75, maxx - 4)

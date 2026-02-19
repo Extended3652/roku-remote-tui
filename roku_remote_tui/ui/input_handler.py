@@ -78,8 +78,8 @@ class InputHandler:
             self.state.open_launcher()
             return None
         
-        # F key: enter favorite assign mode
-        if 0 <= ch <= 255 and chr(ch) in ("F", "f"):
+        # F key (uppercase only): enter favorite assign mode
+        if 0 <= ch <= 255 and chr(ch) == "F":
             self.state.start_fav_assign_mode()
             return None
         
@@ -103,7 +103,19 @@ class InputHandler:
             self.state.focus = "apps" if self.state.focus == "remote" else "remote"
             self.state.set_message(f"Focus: {self.state.focus.upper()}")
             return None
-        
+
+        # h/H: Home (global - works from any focus)
+        if ch == ord('h') or ch == ord('H'):
+            self.roku.run(["home"])
+            self.state.set_message("Home")
+            return None
+
+        # p/P: Power toggle (global)
+        if ch == ord('p') or ch == ord('P'):
+            self.roku.run(["power"])
+            self.state.set_message("Power")
+            return None
+
         # Apps navigation
         if self.state.focus == "apps":
             return self._handle_apps(ch)
@@ -296,10 +308,6 @@ class InputHandler:
             self.roku.run(["back", "1"])
             self.state.set_message("Back")
             return None
-        if ch == ord('h') or ch == ord('H'):
-            self.roku.run(["home"])
-            self.state.set_message("Home")
-            return None
         if ch == ord('i') or ch == ord('I'):
             self.roku.run(["info"])
             self.state.set_message("Info")
@@ -315,6 +323,10 @@ class InputHandler:
         if ch == ord('b') or ch == ord('B'):
             self.roku.run(["rev", "1"])
             self.state.set_message("Rewind")
+            return None
+        if ch == ord('f'):
+            self.roku.run(["fwd", "1"])
+            self.state.set_message("Fast Forward")
             return None
         if ch == ord('m') or ch == ord('M'):
             self.roku.run(["mute"])
