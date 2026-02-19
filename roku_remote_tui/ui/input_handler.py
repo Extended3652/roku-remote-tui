@@ -15,6 +15,15 @@ class InputHandler:
 
     def set_redraw(self, fn):
         self._redraw = fn
+
+    def _send(self, args, ok_msg):
+        """Run a Roku command and surface any error in the status bar."""
+        result = self.roku.run(args)
+        if result:
+            self.state.set_message(ok_msg)
+        else:
+            err = getattr(self.roku, 'last_error', None) or "No response from device"
+            self.state.set_message(f"Error: {err}")
     
     def handle(self, ch):
         # DEVICE SELECTOR has priority (can close other overlays)
@@ -110,14 +119,12 @@ class InputHandler:
 
         # h/H: Home (global - works from any focus)
         if ch == ord('h') or ch == ord('H'):
-            self.roku.run(["home"])
-            self.state.set_message("Home")
+            self._send(["home"], "Home")
             return None
 
         # p/P: Power toggle (global)
         if ch == ord('p') or ch == ord('P'):
-            self.roku.run(["power"])
-            self.state.set_message("Power")
+            self._send(["power"], "Power")
             return None
 
         # Apps navigation
@@ -293,65 +300,51 @@ class InputHandler:
             self.state.enter_typing_mode()
             return None
         if ch == curses.KEY_UP:
-            self.roku.run(["nav", "up", "1"])
-            self.state.set_message("Up")
+            self._send(["nav", "up", "1"], "Up")
             return None
         if ch == curses.KEY_DOWN:
-            self.roku.run(["nav", "down", "1"])
-            self.state.set_message("Down")
+            self._send(["nav", "down", "1"], "Down")
             return None
         if ch == curses.KEY_LEFT:
-            self.roku.run(["nav", "left", "1"])
-            self.state.set_message("Left")
+            self._send(["nav", "left", "1"], "Left")
             return None
         if ch == curses.KEY_RIGHT:
-            self.roku.run(["nav", "right", "1"])
-            self.state.set_message("Right")
+            self._send(["nav", "right", "1"], "Right")
             return None
         if ch in (10, 13, curses.KEY_ENTER):
-            self.roku.run(["ok", "1"])
-            self.state.set_message("OK")
+            self._send(["ok", "1"], "OK")
             return None
         if ch in (curses.KEY_BACKSPACE, 127, 8):
-            self.roku.run(["back", "1"])
-            self.state.set_message("Back")
+            self._send(["back", "1"], "Back")
             return None
         if ch == ord('i') or ch == ord('I'):
-            self.roku.run(["info"])
-            self.state.set_message("Info")
+            self._send(["info"], "Info")
             return None
         if ch == ord('r') or ch == ord('R'):
-            self.roku.run(["replay"])
-            self.state.set_message("Replay")
+            self._send(["replay"], "Replay")
             return None
         if ch == ord(' '):
-            self.roku.run(["play"])
-            self.state.set_message("Play/Pause")
+            self._send(["play"], "Play/Pause")
             return None
         if ch == ord('b') or ch == ord('B'):
-            self.roku.run(["rev", "1"])
-            self.state.set_message("Rewind")
+            self._send(["rev", "1"], "Rewind")
             return None
         if ch == ord('f'):
-            self.roku.run(["fwd", "1"])
-            self.state.set_message("Fast Forward")
+            self._send(["fwd", "1"], "Fast Forward")
             return None
         if ch == ord('m') or ch == ord('M'):
-            self.roku.run(["mute"])
-            self.state.set_message("Mute")
+            self._send(["mute"], "Mute")
             return None
         if ch == ord('=') or ch == ord('+'):
             now = time.time()
             if (now - self._last_vol_time) >= self._vol_min_gap:
-                self.roku.run(["vol", "up", "1"])
-                self.state.set_message("Volume Up")
+                self._send(["vol", "up", "1"], "Volume Up")
                 self._last_vol_time = now
             return None
         if ch == ord('-') or ch == ord('_'):
             now = time.time()
             if (now - self._last_vol_time) >= self._vol_min_gap:
-                self.roku.run(["vol", "down", "1"])
-                self.state.set_message("Volume Down")
+                self._send(["vol", "down", "1"], "Volume Down")
                 self._last_vol_time = now
             return None
         return None

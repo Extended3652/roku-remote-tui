@@ -329,7 +329,8 @@ class AppState:
             else:
                 self.apps = []
                 self.apps_loaded = False
-                self.set_message("Failed to load apps")
+                err = getattr(self.roku, 'last_error', None) or "no response"
+                self.set_message(f"Failed to load apps: {err}")
                 self.online = False
         except Exception as e:
             self.apps = []
