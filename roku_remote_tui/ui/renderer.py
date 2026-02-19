@@ -24,10 +24,30 @@ class Renderer:
         maxy, maxx = self.stdscr.getmaxyx()
         title = f"Roku Remote TUI v2.1 [{self.state.theme.get_theme_name()}]"
         self._addstr(0, 2, title, self.state.theme.get_color("title"), curses.A_BOLD)
-        mode = "TYPING" if self.state.typing_mode else ("APPS" if self.state.focus == "apps" else "NAV")
+        if self.state.fav_assign_mode:
+            remaining = max(0, self.state.fav_assign_until - time.time())
+            mode = f"FAV→{remaining:.0f}s"
+            mode_color = self.state.theme.get_color("favorite")
+        elif self.state.typing_mode:
+            mode = "TYPING"
+            mode_color = self.state.theme.get_color("status")
+        elif self.state.focus == "apps":
+            mode = "APPS"
+            mode_color = self.state.theme.get_color("status")
+        else:
+            mode = "NAV"
+            mode_color = self.state.theme.get_color("status")
         online = "ONLINE" if self.state.online else "OFFLINE" if self.state.online is False else "UNKNOWN"
+        online_color = 2 if self.state.online else (4 if self.state.online is False else 3)
         status = f"[ {mode} ]  [ {online} ]"
-        self._addstr(0, maxx - len(status) - 2, status, self.state.theme.get_color("status"), curses.A_BOLD)
+        # Draw mode and online status with individual colors
+        mode_str = f"[ {mode} ]"
+        online_str = f"[ {online} ]"
+        self._addstr(0, maxx - len(status) - 2, mode_str, mode_color, curses.A_BOLD)
+        self._addstr(0, maxx - len(online_str) - 2, online_str, online_color, curses.A_BOLD)
+        # Separator line under title row
+        sep = "─" * max(0, maxx - 2)
+        self._addstr(1, 1, sep, self.state.theme.get_color("border"), curses.A_DIM)
         top = 2
         bottom_reserved = 3
         main_h = max(10, maxy - top - bottom_reserved)
@@ -57,23 +77,25 @@ class Renderer:
         border_color = self.state.theme.get_color("border")
         self._draw_box(y, x, h, w, "Quick Keys", border_color, curses.A_DIM)
         lines = [
-            ("/: launcher", 5, 0), ("Tab: switch focus", 5, 0), ("q: quit", 5, 0), ("?: help", 5, 0),
-            ("Shift+T: theme", 5, 0), ("Shift+S: stats", 5, 0), ("D: devices", 5, 0), ("", 5, 0),
-            ("Remote:", 3, curses.A_BOLD),
-            ("Arrows: navigate", 5, 0), ("Enter: OK", 5, 0), ("Backspace: Back", 5, 0),
-            ("p: Power", 5, 0), ("h: Home", 5, 0),
-            ("Space: Play/Pause", 5, 0), ("b/f: Rev/Fwd", 5, 0),
-            ("r: Replay", 5, 0), ("i: Info", 5, 0),
-            ("m: Mute", 5, 0), ("- / =: Volume", 5, 0), ("t: Type text", 5, 0), ("", 5, 0),
-            ("Apps:", 3, curses.A_BOLD), ("↑↓: select", 5, 0), ("Enter: launch", 5, 0),
-            ("r: refresh", 5, 0), ("", 5, 0),
-            ("Favorites:", 3, curses.A_BOLD), ("F: assign slot", 5, 0), ("1-9: launch", 5, 0),
+            ("/: launcher", 5), ("Tab: switch focus", 5), ("q: quit", 5), ("?: help", 5),
+            ("Shift+T: theme", 5), ("Shift+S: stats", 5), ("D: devices", 5), ("", 5),
+            ("Remote:", 3),
+            ("Arrows: navigate", 5), ("Enter: OK", 5), ("Backspace: Back", 5),
+            ("p: Power", 5), ("h: Home", 5),
+            ("Space: Play/Pause", 5), ("b/f: Rev/Fwd", 5),
+            ("r: Replay", 5), ("i: Info", 5),
+            ("m: Mute", 5), ("- / =: Volume", 5), ("t: Type text", 5), ("", 5),
+            ("Apps:", 3), ("↑↓: select", 5), ("Enter: launch", 5),
+            ("r: refresh", 5), ("", 5),
+            ("Favorites:", 3), ("F: assign slot", 5), ("1-9: launch", 5),
         ]
         qy = y + 2
         qx = x + 3
-        for text, color, attr in lines:
+        for text, color in lines:
             if qy >= y + h - 1:
                 break
+            # Section headers are slightly less dim; body text is fully dim
+            attr = curses.A_DIM if color != 3 else 0
             self._addstr(qy, qx, text[:max(0, w - 4)], color, attr)
             qy += 1
     
@@ -95,7 +117,7 @@ class Renderer:
             "└─────────────────────────┘"
         ]
         art_color = 2 if remote_active else 5
-        art_attr = curses.A_BOLD if remote_active else 0
+        art_attr = curses.A_BOLD if remote_active else curses.A_DIM
         inner_h = max(1, h - 2)
         inner_w = max(1, w - 4)
         art_h = len(art)
@@ -112,7 +134,9 @@ class Renderer:
         border_color = self.state.theme.get_color("border_active") if apps_active else self.state.theme.get_color("border")
         border_attr = 0 if apps_active else curses.A_DIM
         title_attr = (curses.A_BOLD | curses.A_REVERSE) if apps_active else 0
-        self._draw_box(y, x, h, w, "Apps", border_color, border_attr | title_attr)
+        device_name = self.state.get_current_device_name()
+        box_title = f"Apps — {device_name}" if device_name != "No Device" else "Apps"
+        self._draw_box(y, x, h, w, box_title, border_color, border_attr | title_attr)
         dim = curses.A_DIM if not apps_active else 0
         inner_y = y + 1
         inner_x = x + 2
@@ -121,13 +145,22 @@ class Renderer:
             self._addstr(inner_y, inner_x, "Loading apps...", 3, dim)
             return
         total = len(self.state.apps)
-        self._addstr(inner_y, inner_x, f"Total: {total} apps/inputs", 3, curses.A_BOLD | dim)
+        visible = h - 5
+        start = self.state.apps_scroll
+        end = min(total, start + visible)
+        # Header: app count left-aligned, scroll position right-aligned
+        self._addstr(inner_y, inner_x, f"{total} apps/inputs", 3, curses.A_BOLD | dim)
+        if total > visible:
+            pos_str = f"{self.state.apps_selected + 1}/{total}"
+            self._addstr(inner_y, x + w - 2 - len(pos_str), pos_str, 3, curses.A_DIM | dim)
         inner_y += 2
         list_height = h - 5
         self.state._apps_list_h = list_height
-        visible = h - 5
-        start = self.state.apps_scroll
-        end = min(len(self.state.apps), start + visible)
+        # Scroll indicators
+        if start > 0:
+            self._addstr(inner_y - 1, x + w - 2, "▲", self.state.theme.get_color("status"), dim)
+        if end < total:
+            self._addstr(y + h - 2, x + w - 2, "▼", self.state.theme.get_color("status"), dim)
         row_y = inner_y
         for i in range(start, end):
             if row_y >= y + h - 2:
@@ -156,6 +189,22 @@ class Renderer:
         footer = "↑↓: select  Enter: launch  r: refresh  Tab: focus"
         self._addstr(y + h - 1, x + 2, footer[:w-4], 3, dim)
     
+    def _msg_color(self, msg):
+        """Auto-detect appropriate color for a status message."""
+        if not msg:
+            return 5
+        l = msg.lower()
+        if any(l.startswith(w) for w in ("error", "failed", "offline", "no device", "invalid")):
+            return 4  # red
+        if any(l.startswith(w) for w in (
+            "launching", "launched", "switched", "loaded", "refreshed",
+            "saved", "sent", "found", "home", "ok", "up", "down", "left",
+            "right", "back", "play", "mute", "volume", "replay", "rewind",
+            "fast forward", "power", "info", "focus",
+        )):
+            return 2  # green
+        return 3  # yellow (neutral / informational)
+
     def _draw_bottom(self, maxy, maxx):
         if self.state.typing_mode:
             self._draw_box(maxy - 3, 1, 3, maxx - 2, "Typing", 6, curses.A_BOLD)
@@ -166,10 +215,10 @@ class Renderer:
             self._addstr(maxy - 1, 2, "Esc exits typing. Enter sends.", 3)
         else:
             hint = "Tip: Press ? for help. / for launcher. Tab to switch focus. q to quit"
-            self._addstr(maxy - 2, 2, hint[:maxx-4], 3)
+            self._addstr(maxy - 2, 2, hint[:maxx-4], 3, curses.A_DIM)
             msg = self.state.get_visible_message()
             status_line = f"Status: {msg}" if msg else "Status: Ready"
-            self._addstr(maxy - 1, 2, status_line[:maxx-4], 5)
+            self._addstr(maxy - 1, 2, status_line[:maxx-4], self._msg_color(msg))
     
     def _draw_launcher_overlay(self, maxy, maxx):
         if not self.state.launcher_open:
