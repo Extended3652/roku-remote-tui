@@ -95,10 +95,16 @@ class RokuCLI:
         try:
             url = self._base_url() + path
             req = urllib.request.Request(url, data=b"", method="POST")
+            req.add_header("Content-Type", "application/x-www-form-urlencoded")
             with urllib.request.urlopen(req, timeout=timeout) as resp:
                 return resp.status == 200
         except Exception as e:
             self.last_error = str(e)
+            if "403" in str(e):
+                self.last_error = (
+                    "HTTP 403 - check Roku Settings > System > "
+                    "Advanced system settings > External control"
+                )
             return False
 
     def _keypress(self, key, timeout=5.0):

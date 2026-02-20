@@ -317,8 +317,14 @@ class AppState:
                     if not arg:
                         arg = name
                     processed.append({"name": name, "arg": arg, "type": typ, "display": name or arg})
-                inputs = [a for a in processed if a["type"] == "tvin"]
-                apps_only = [a for a in processed if a["type"] != "tvin"]
+                inputs = sorted(
+                    [a for a in processed if a["type"] == "tvin"],
+                    key=lambda x: x["name"].lower()
+                )
+                apps_only = sorted(
+                    [a for a in processed if a["type"] != "tvin"],
+                    key=lambda x: x["name"].lower()
+                )
                 self.apps = inputs + apps_only
                 self.apps_loaded = True
                 if self.apps_selected >= len(self.apps):
