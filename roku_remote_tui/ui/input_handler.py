@@ -188,6 +188,17 @@ class InputHandler:
         try:
             _, mx, my, _, bstate = curses.getmouse()
             now = time.time()
+            if bstate & (curses.BUTTON1_PRESSED | curses.BUTTON1_CLICKED | curses.BUTTON1_RELEASED):
+                if self.state.focus == "apps":
+                    self.state.launch_app()
+                else:
+                    self.roku.run(["ok", "1"])
+                    self.state.set_message("OK")
+                return None
+            if bstate & (curses.BUTTON3_PRESSED | curses.BUTTON3_CLICKED | curses.BUTTON3_RELEASED):
+                self.roku.run(["back", "1"])
+                self.state.set_message("Back")
+                return None
             if self.state.focus == "apps":
                 if (now - self._last_wheel_time) < self._wheel_min_gap_apps:
                     return None
@@ -210,10 +221,6 @@ class InputHandler:
                         self._last_wheel_time = now
                     return None
             elif self.state.focus == "remote":
-                if bstate & (curses.BUTTON1_PRESSED | curses.BUTTON1_CLICKED):
-                    self.roku.run(["ok", "1"])
-                    self.state.set_message("OK")
-                    return None
                 if (now - self._last_wheel_time) < self._wheel_min_gap_remote:
                     return None
                 if bstate & curses.BUTTON4_PRESSED:
