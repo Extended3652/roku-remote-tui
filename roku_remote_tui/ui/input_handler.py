@@ -11,6 +11,8 @@ class InputHandler:
         self._wheel_min_gap_remote = 0.15
         self._last_vol_time = 0.0
         self._vol_min_gap = 0.25
+        self._last_printable_time = 0.0
+        self._paste_count = 0
     
     def handle(self, ch):
         # DEVICE SELECTOR has priority (can close other overlays)
@@ -53,7 +55,18 @@ class InputHandler:
         # Handle mouse events
         if ch == curses.KEY_MOUSE:
             return self._handle_mouse()
-        
+
+        # PASTE GUARD: ignore rapid printable input outside typing mode
+        if 0 <= ch <= 255 and chr(ch).isprintable():
+            now = time.time()
+            if (now - self._last_printable_time) < 0.01:
+                self._paste_count += 1
+            else:
+                self._paste_count = 0
+            self._last_printable_time = now
+            if self._paste_count >= 1:
+                return None
+
         # GLOBAL KEYS
         
         # D key: Device selector
