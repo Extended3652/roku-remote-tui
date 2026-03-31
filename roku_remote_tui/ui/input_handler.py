@@ -201,14 +201,14 @@ class InputHandler:
         try:
             _, mx, my, _, bstate = curses.getmouse()
             now = time.time()
-            if bstate & (curses.BUTTON1_PRESSED | curses.BUTTON1_CLICKED | curses.BUTTON1_RELEASED):
+            if bstate & (curses.BUTTON1_PRESSED | curses.BUTTON1_CLICKED):
                 if self.state.focus == "apps":
                     self.state.launch_app()
                 else:
                     self.roku.run(["ok", "1"])
                     self.state.set_message("OK")
                 return None
-            if bstate & (curses.BUTTON3_PRESSED | curses.BUTTON3_CLICKED | curses.BUTTON3_RELEASED):
+            if bstate & (curses.BUTTON3_PRESSED | curses.BUTTON3_CLICKED):
                 self.roku.run(["back", "1"])
                 self.state.set_message("Back")
                 return None
