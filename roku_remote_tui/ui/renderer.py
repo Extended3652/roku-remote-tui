@@ -214,6 +214,8 @@ class Renderer:
             ("  ↑↓←→        Navigate", 5, 0), ("  Enter       OK / Launch", 5, 0), ("  Backspace   Back", 5, 0),
             ("", 5, 0), ("REMOTE CONTROL", 6, curses.A_BOLD), ("  h           Home", 5, 0),
             ("  Space       Play/Pause", 5, 0), ("  r           Replay", 5, 0), ("  i           Info", 5, 0),
+            ("  p           Power", 5, 0), ("  o           OK hold (2s)", 5, 0),
+            ("  Left-click  OK (remote mode)", 5, 0),
             ("  b           Rewind", 5, 0), ("  m           Mute", 5, 0), ("  - / =       Volume down/up", 5, 0),
             ("", 5, 0), ("FEATURES", 6, curses.A_BOLD), ("  /           Launcher", 3, 0),
             ("  t           Typing mode", 3, 0), ("  F then 1-9  Set favorite", 3, 0),

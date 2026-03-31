@@ -210,6 +210,10 @@ class InputHandler:
                         self._last_wheel_time = now
                     return None
             elif self.state.focus == "remote":
+                if bstate & (curses.BUTTON1_PRESSED | curses.BUTTON1_CLICKED):
+                    self.roku.run(["ok", "1"])
+                    self.state.set_message("OK")
+                    return None
                 if (now - self._last_wheel_time) < self._wheel_min_gap_remote:
                     return None
                 if bstate & curses.BUTTON4_PRESSED:
@@ -315,6 +319,16 @@ class InputHandler:
         if ch == ord('b') or ch == ord('B'):
             self.roku.run(["rev", "1"])
             self.state.set_message("Rewind")
+            return None
+        if ch == ord('p') or ch == ord('P'):
+            self.roku.run(["power"])
+            self.state.set_message("Power")
+            return None
+        if ch == ord('o') or ch == ord('O'):
+            self.roku.run(["keydown", "select"])
+            self.state.ok_hold_active = True
+            self.state.ok_hold_end = time.time() + 2.0
+            self.state.set_message("OK hold (2s)")
             return None
         if ch == ord('m') or ch == ord('M'):
             self.roku.run(["mute"])
